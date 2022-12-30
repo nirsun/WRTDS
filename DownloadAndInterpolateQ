@@ -1,0 +1,32 @@
+# Download and Interpolate Missing Streamflow Data
+rm(list=ls())
+cat("\014") 
+#Batch Works
+library(dataRetrieval)
+library(EGRET)
+library(pracma)
+# define working path
+savePath_old<-"/workingFolder/"
+# list of sites : Define the col classes to preserve the first 0 of the USGS code
+datasites<-read.csv(paste(savePath_old,"list_of_USGS_sites.csv",sep = ""),header=TRUE, colClasses=c(rep("character",4)))
+#datasites<-tail(datasites, -40)
+datasites<-head(datasites, 1)
+
+sites_WQ<-datasites$MonitoringLocationIdentifier
+sites_Q<-datasites$USGS_siteNumber
+startDate <- "1984-01-01"#Gets earliest date♣
+endDate <-  "2021-09-30"#Gets earliest date
+parameter_cd<-"00667" #5 digit USGS code
+SiteIndex <-datasites$SN
+
+for (i in length(sites_Q)){
+  ############################
+  Daily <- readNWISDaily(sites_Q[i],"00060",startDate[1],endDate[1])
+  # There is a need to fill in the missing Q values: Use the following function to do the job
+  source(paste(savePath_old,"fun_interpolatedQ.R",sep = "")) # fun_interpolatedQ.R has to be in the WorkingFolder
+  FilledQ<-interpolatedQ(Daily)
+  # Recreate the Discharge Data
+  savepathQ <- "workingFolder/StoreFlow"
+  filenameQ <- paste(sites_Q[i],"_",SiteIndex[i],".txt",sep="")
+  write.table(FilledQ,paste(savepathQ,"/",filenameQ,sep = ""),sep = "\t",row.names = FALSE)
+}
